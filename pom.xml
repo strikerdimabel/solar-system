@@ -38,6 +38,7 @@
                                 <mainClass>belousdo.solarsystem.SolarSystem</mainClass>
                             </manifest>
                         </archive>
+                        <finalName>Solar system</finalName>
                     </configuration>
                 </plugin>
             </plugins>
