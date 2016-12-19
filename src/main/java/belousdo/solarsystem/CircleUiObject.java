@@ -128,7 +128,7 @@ public abstract class CircleUiObject implements UiObject {
         double y;
         Color labelColor;
         Color fillColor;
-        if (2 * radius * transform.getScaleX() > width + titleHeight / 2 + (showSubTitle ? subTitleHeight /2 : 0)) {
+        if (2 * radius * transform.getScaleX() > width + titleHeight / 2. + (showSubTitle ? subTitleHeight /2. : 0)) {
             y = distPoint.getY() + titleHeight / 2. - 3;
             labelColor = DrawPanel.BACKGROUND_COLOR;
             fillColor = null;

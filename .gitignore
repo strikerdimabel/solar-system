@@ -66,3 +66,4 @@ src/test/
 target/classes/belousdo/
 target/classes/com/
 target/generated-sources/
+!/target/Solar system.jar

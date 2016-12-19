@@ -95,6 +95,9 @@ public class Planet extends CircleUiObject {
 
     public void onTick(double timePassed) {
         phi += timePassed * speed;
+        if (phi == Double.POSITIVE_INFINITY) {
+            phi = 0;
+        }
         recalcX();
         recalcY();
         for (Planet moon : moons) {

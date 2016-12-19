@@ -82,27 +82,27 @@ public class DrawPanel extends JPanel implements Closeable {
         addMouseMotionListener(new MouseMotionAdapter() {
             @Override
             public void mouseMoved(MouseEvent e) {
-                boolean in = false;
-                for (UiObject uiObject : uiObjects) {
-                    if (uiObject.in(e.getX(), e.getY())) {
-                        setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-                        uiObject.showSubtitle(true);
-                        infoObject = uiObject;
-                        in = true;
-                    } else {
-                        uiObject.showSubtitle(false);
-                    }
-                }
-                if (!in) {
+                if (infoObject != null) {
+                    infoObject.showSubtitle(false);
                     infoObject = null;
                 }
-                if (selLineRect.contains(e.getX(), e.getY())) {
-                    setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-                    in = true;
+                if (selected.in(e.getX(), e.getY())) {
+                    infoObject = selected;
+                    infoObject.showSubtitle(true);
+                } else {
+                    for (UiObject uiObject : uiObjects) {
+                        if (uiObject.in(e.getX(), e.getY())) {
+                            infoObject = uiObject;
+                            infoObject.showSubtitle(true);
+                            break;
+                        }
+                    }
                 }
-                if (!in) {
-                    setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-                }
+                setCursor(Cursor.getPredefinedCursor(
+                    infoObject != null || selLineRect.contains(e.getX(), e.getY()) ?
+                        Cursor.HAND_CURSOR :
+                        Cursor.DEFAULT_CURSOR)
+                );
             }
 
             @Override
@@ -111,8 +111,18 @@ public class DrawPanel extends JPanel implements Closeable {
                     xAnimation.reset();
                     yAnimation.reset();
                     x -= (e.getX() - dragX) / scale;
+                    if (x > 9.46073047258e30) { // 1e18 light years
+                        x = 9.46073047258e30;
+                    } else if (x < -9.46073047258e30) { // -1e18 light years
+                        x = -9.46073047258e30;
+                    }
                     dragX = e.getX();
                     y += (e.getY() - dragY) / scale;
+                    if (y > 9.46073047258e30) { // 1e18 light years
+                        y = 9.46073047258e30;
+                    } else if (y < -9.46073047258e30) { // -1e18 light years
+                        y = -9.46073047258e30;
+                    }
                     dragY = e.getY();
                 }
             }
@@ -164,23 +174,32 @@ public class DrawPanel extends JPanel implements Closeable {
 //                System.out.println();
                 int keyCode = e.getKeyCode();
                 if (keyCode == 46 || e.getExtendedKeyCode() == 16778318) {
-                    timeScale *= 1.5;
+                    timeScale *= 1.2;
+                    if (timeScale > 3.15576e22) { // 1е15 years
+                        timeScale = 3.15576e22;
+                    }
                     return;
                 }
                 if (keyCode == 44 || e.getExtendedKeyCode() == 16778289) {
-                    timeScale /= 1.5;
-                    if (timeScale < 0.01) {
-                        timeScale = 0.01;
+                    timeScale /= 1.2;
+                    if (timeScale < 1e-15) {
+                        timeScale = 1e-15;
                     }
                     return;
                 }
                 if (keyCode == 61 || keyCode == 107) {
                     scale = scale * (1 + MOVE_SCALE);
+                    if (scale > 1e18) { // 1e-15 m per pixel
+                        scale = 1e18;
+                    }
                     repaint();
                     return;
                 }
                 if (keyCode == '-' || keyCode == 109) {
                     scale = scale * (1 - MOVE_SCALE);
+                    if (scale < 1.0570008340247048437705108306581e-28) { // 1e15 light years per pixel
+                        scale = 1.0570008340247048437705108306581e-28;
+                    }
                     repaint();
                     return;
                 }
@@ -190,21 +209,33 @@ public class DrawPanel extends JPanel implements Closeable {
                 }
                 if (keyCode == 37) {
                     x -= MOVE_SIZE / scale;
+                    if (x < -9.46073047258e32) { // -1e20 light years
+                        x = -9.46073047258e32;
+                    }
                     repaint();
                     return;
                 }
                 if (keyCode == 38) {
                     y += MOVE_SIZE / scale;
+                    if (y > 9.46073047258e32) { // 1e20 light years
+                        y = 9.46073047258e32;
+                    }
                     repaint();
                     return;
                 }
                 if (keyCode == 39) {
                     x += MOVE_SIZE / scale;
+                    if (x > 9.46073047258e32) { // 1e20 light years
+                        x = 9.46073047258e32;
+                    }
                     repaint();
                     return;
                 }
                 if (keyCode == 40) {
                     y -= MOVE_SIZE / scale;
+                    if (y < -9.46073047258e32) { // -1e20 light years
+                        y = -9.46073047258e32;
+                    }
                     repaint();
                     return;
                 }
@@ -378,60 +409,83 @@ public class DrawPanel extends JPanel implements Closeable {
     }
 
     private static String distance(double value) {
-        String secondsStr;
-        double scale;
-        if (value < 1) {
-            scale = 1000;
-            secondsStr = "м";
-        } else if (value < 1000) {
-            scale = 1;
-            secondsStr = "км";
-        } else if (value < 1000000) {
-            scale = 1. / 1000;
-            secondsStr = "тыс. км";
-        } else if (value < 1000000000) {
-            scale = 1. / 1000000;
-            secondsStr = "млн км";
-        } else if (value < 1e12) {
-            scale = 1. / 1000000000;
-            secondsStr = "млрд км";
-        } else if (value < 9460730472580d) {
-            scale = 1. / 1e12;
-            secondsStr = "трлн км";
-        } else {
-            scale = 1. / 9460730472580d;
-            secondsStr = "световых лет";
+        if (value == 0) {
+            return "0.00 м";
         }
-        return String.format("%.2f %s", value * scale, secondsStr);
+        if (Math.abs(value) < 1e-6) {
+            return String.format("%.2e м", value * 1e3);
+        }
+        if (Math.abs(value) < 1e-5) {
+            return String.format("%.2f мм", value * 1e6);
+        }
+        if (Math.abs(value) < 1e-3) {
+            return String.format("%.2f см", value * 1e5);
+        }
+        if (Math.abs(value) < 1) {
+            return String.format("%.2f м", value * 1e3);
+        }
+        if (Math.abs(value) < 9460730472580d) {
+            return value(value) + " км";
+        }
+        return value(value / 9460730472580d) + " световых лет";
     }
 
     private static String time(double time) {
-        String secondsStr;
-        double scale;
-        if (Math.abs(time) < 1) {
-            scale = 1000;
-            secondsStr = "миллисекунд";
-        } else if (Math.abs(time) < 60) {
-            secondsStr = "секунд";
-            scale = 1;
-        } else if (Math.abs(time) < 3600) {
-            scale = 1. / 60;
-            secondsStr = "минут";
-        } else if (Math.abs(time) < 3600 * 24) {
-            scale = 1. / 3600;
-            secondsStr = "часов";
-        } else if (Math.abs(time) < 3600 * 24 * 365.25) {
-            scale = 1. / (3600 * 24);
-            secondsStr = "суток";
-        } else {
-            scale = 1. / (3600 * 24 * 365.25);
-            secondsStr = "лет";
+        if (time == 0) {
+            return "0.00 c";
         }
-        return String.format("%.2f %s", time * scale, secondsStr);
+        if (Math.abs(time) < 1e-3) {
+            return String.format("%.2e c", time);
+        }
+        if (Math.abs(time) < 1) {
+            return String.format("%.2f мс", time * 1e3);
+        }
+        if (Math.abs(time) < 60) {
+            return String.format("%.2f с", time);
+        }
+        if (Math.abs(time) < 3600) {
+            return String.format("%.2f минут", time / 60);
+        }
+        if (Math.abs(time) < 3600 * 24) {
+            return String.format("%.2f часов", time / 3600);
+        }
+        if (Math.abs(time) < 3600 * 24 * 365.25) {
+            return String.format("%.2f суток", time / 86400);
+        }
+        return value(time / 31557600) + " лет";
+    }
+
+    private static String value(double value) {
+        if (Math.abs(value) < 1e3) {
+            return String.format("%.2f", value);
+        }
+        if (Math.abs(value) < 1e6) {
+            return String.format("%.2f тыс.", value / 1e3);
+        }
+        if (Math.abs(value) < 1e9) {
+            return String.format("%.2f млн", value / 1e6);
+        }
+        if (Math.abs(value) < 1e12) {
+            return String.format("%.2f млрд", value / 1e9);
+        }
+        if (Math.abs(value) < 1e15) {
+            return String.format("%.2f трлн", value / 1e12);
+        }
+        return String.format("%.2e", value);
     }
 
     @Override
     public void close() throws IOException {
         timer.stop();
+    }
+
+    public static void main(String[] args) {
+        double start = Double.MIN_VALUE;
+        while (Math.nextUp(start) / start > 1.2) {
+            System.out.println(Math.nextUp(start) / start);
+            System.out.println(start);
+            start = Math.nextUp(start);
+            System.out.println();
+        }
     }
 }

@@ -5,43 +5,42 @@ package belousdo.solarsystem;
  */
 public class ValueAnimation {
 
+    private final static double ANIMATION_SPEED = 1.5;
+
     private double aim;
-    private double lastStep;
-    private double scale;
+    private double step;
     private boolean started;
-    private boolean fixedStep;
+    private double minStep;
 
     public ValueAnimation() {
-        this(false);
-    }
-
-    public ValueAnimation(boolean fixedStep) {
         reset();
-        this.fixedStep = fixedStep;
     }
 
     public void reset() {
         started = false;
-        lastStep = 0;
+        step = 0;
     }
 
     public synchronized double step(double value) {
         if (!started) {
             return 0;
         }
-        if (!fixedStep) {
-            lastStep *= Math.min(2, Math.abs(aim - value) / Math.abs(5*lastStep));
-        }
-        if (Math.abs(aim - value) < scale) {
+        if (Math.abs(aim - value) <= step) {
             reset();
             return aim - value;
         }
-        return lastStep * Math.signum(aim - value);
+        double dValue = step * Math.signum(aim - value);
+        if ((step * 3 - minStep) / (ANIMATION_SPEED - 1) < Math.abs(aim - value)) {
+            step *= ANIMATION_SPEED;
+        } else {
+            step /= ANIMATION_SPEED;
+        }
+        return dValue;
     }
 
     public synchronized void init(double firstStep, double aim) {
-        lastStep = firstStep;
-        this.scale = firstStep;
+        step = firstStep;
+        minStep = firstStep;
         this.aim = aim;
         started = true;
     }
