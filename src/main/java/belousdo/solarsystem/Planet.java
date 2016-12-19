@@ -1,12 +1,11 @@
 package belousdo.solarsystem;
 
 import java.awt.*;
-import java.awt.geom.AffineTransform;
-import java.awt.geom.Arc2D;
-import java.awt.geom.Area;
-import java.awt.geom.Point2D;
+import java.awt.geom.*;
 import java.util.ArrayList;
 import java.util.Random;
+
+import static belousdo.solarsystem.DrawPanel.MAX_RECT;
 
 /**
  * Created by Dmitri on 13.12.2016.
@@ -55,6 +54,8 @@ public class Planet extends CircleUiObject {
 
     public void onDraw(Graphics2D graphics2D, AffineTransform transform) {
         graphics2D.setColor(getColor());
+        Rectangle bounds = graphics2D.getClipBounds();
+        bounds.setBounds(-1, 0, bounds.width + 1, bounds.height);
         if (!hidden()) {
             Shape orbit = new Arc2D.Double();
             ((Arc2D) orbit).setArcByCenter(
@@ -62,6 +63,11 @@ public class Planet extends CircleUiObject {
             );
             ((Arc2D) orbit).setAngleStart(new Point2D.Double(getX(), getY()));
             orbit = transform.createTransformedShape(orbit);
+            if (!MAX_RECT.contains(orbit.getBounds2D())) {
+                Area orbitArea = new Area(orbit);
+                orbitArea.intersect(new Area(bounds));
+                orbit = orbitArea;
+            }
             graphics2D.draw(orbit);
         }
 
@@ -70,15 +76,19 @@ public class Planet extends CircleUiObject {
             ((Arc2D) outerRing).setArcByCenter(
                 getX(), getY(), ring.getOutR(), 0, 360, Arc2D.OPEN
             );
+            outerRing = transform.createTransformedShape(outerRing);
             Shape innerRing = new Arc2D.Double();
             ((Arc2D) innerRing).setArcByCenter(
                 getX(), getY(), ring.getInR(), 0, 360, Arc2D.OPEN
             );
+            innerRing = transform.createTransformedShape(innerRing);
             Area ringArea = new Area(outerRing);
             ringArea.subtract(new Area(innerRing));
-            Shape ringShape = transform.createTransformedShape(ringArea);
+            if (!MAX_RECT.contains(ringArea.getBounds2D())) {
+                ringArea.intersect(new Area(bounds));
+            }
             graphics2D.setColor(ring.getColor());
-            graphics2D.fill(ringShape);
+            graphics2D.fill(ringArea);
         }
         super.onDraw(graphics2D, transform);
     }

@@ -5,10 +5,7 @@ import lombok.Setter;
 
 import java.awt.*;
 import java.awt.font.TextAttribute;
-import java.awt.geom.AffineTransform;
-import java.awt.geom.Arc2D;
-import java.awt.geom.Point2D;
-import java.awt.geom.Rectangle2D;
+import java.awt.geom.*;
 import java.text.AttributedString;
 
 import static belousdo.solarsystem.DrawPanel.*;
@@ -80,12 +77,19 @@ public abstract class CircleUiObject implements UiObject {
     public void onDraw(Graphics2D graphics2D, AffineTransform transform) {
         graphics2D.setColor(color);
 
+        Rectangle bounds = graphics2D.getClipBounds();
+        bounds.setBounds(-1, 0, bounds.width + 1, bounds.height);
         shape = transform.createTransformedShape(new Arc2D.Double(
             getX() - radius,
             getY() - radius,
             2*radius, 2*radius,
             0, 360, Arc2D.OPEN
         ));
+        if (!MAX_RECT.contains(shape.getBounds2D())) {
+            Area shapeArea = new Area(shape);
+            shapeArea.intersect(new Area(bounds));
+            shape = shapeArea;
+        }
         graphics2D.fill(shape);
 
         if (hidden() || radius >= 0.5 / transform.getScaleX()) {

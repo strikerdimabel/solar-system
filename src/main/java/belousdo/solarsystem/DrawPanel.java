@@ -17,6 +17,7 @@ import java.util.Map;
  */
 public class DrawPanel extends JPanel implements Closeable {
 
+    public static final Rectangle MAX_RECT = new Rectangle(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
     private static final int TIMER_DELAY = 33;
     private static final int MOVE_SIZE = 10;
     private static final double MOVE_SCALE = 0.03;
@@ -111,17 +112,17 @@ public class DrawPanel extends JPanel implements Closeable {
                     xAnimation.reset();
                     yAnimation.reset();
                     x -= (e.getX() - dragX) / scale;
-                    if (x > 9.46073047258e30) { // 1e18 light years
-                        x = 9.46073047258e30;
-                    } else if (x < -9.46073047258e30) { // -1e18 light years
-                        x = -9.46073047258e30;
+                    if (x > 9.46073047258e32) { // 1e20 light years
+                        x = 9.46073047258e32;
+                    } else if (x < -9.46073047258e32) { // -1e20 light years
+                        x = -9.46073047258e32;
                     }
                     dragX = e.getX();
                     y += (e.getY() - dragY) / scale;
-                    if (y > 9.46073047258e30) { // 1e18 light years
-                        y = 9.46073047258e30;
-                    } else if (y < -9.46073047258e30) { // -1e18 light years
-                        y = -9.46073047258e30;
+                    if (y > 9.46073047258e32) { // 1e20 light years
+                        y = 9.46073047258e32;
+                    } else if (y < -9.46073047258e32) { // -1e20 light years
+                        y = -9.46073047258e32;
                     }
                     dragY = e.getY();
                 }
@@ -308,7 +309,7 @@ public class DrawPanel extends JPanel implements Closeable {
 
         infoHeight = rectangle.height + textHeight;
         if (help) {
-            drawInfoString(graphics2D, "Dmitri Belous, BSU, 2016, v1.1.4.2");
+            drawInfoString(graphics2D, "Dmitri Belous, BSU, 2016, v1.1.5");
         }
         if (infoObject != null) {
             if (infoObject instanceof Planet) {
