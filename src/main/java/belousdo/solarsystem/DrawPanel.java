@@ -8,8 +8,6 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.font.TextAttribute;
 import java.awt.geom.AffineTransform;
-import java.awt.geom.NoninvertibleTransformException;
-import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.io.Closeable;
 import java.io.IOException;
@@ -146,8 +144,6 @@ public class DrawPanel extends JPanel implements Closeable {
         addMouseListener(new MouseInputAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                xAnimation.reset();
-                yAnimation.reset();
                 if (getCursor() == Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)) {
                     for (int i = uiObjects.size() - 1; i >= 0; --i) {
                         UiObject uiObject = uiObjects.get(i);
@@ -323,12 +319,7 @@ public class DrawPanel extends JPanel implements Closeable {
         mainHeight = 0;
         leftSide = true;
         drawMainString(graphics2D, "В одном пикселе " + distance(1 / scale));
-        try {
-            Point2D point = transform.inverseTransform(getMousePosition(), new Point2D.Double());
-            drawMainString(graphics2D, distance(Math.sqrt(point.getX() * point.getX() + point.getY() * point.getY())) + " от Солнца");
-        } catch (NoninvertibleTransformException e) {
-            e.printStackTrace();
-        }
+        drawMainString(graphics2D, distance(Math.sqrt(x*x + y*y)) + " от Солнца");
         drawMainString(graphics2D, "В одной секунде " + time(timeScale));
         drawSelLabel(graphics2D);
 
