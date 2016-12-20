@@ -296,7 +296,7 @@ public class DrawPanel extends JPanel implements Closeable {
 
         infoHeight = rectangle.height + textHeight;
         if (help) {
-            drawInfoString(graphics2D, "Dmitri Belous, BSU, 2016, v1.1.5");
+            drawInfoString(graphics2D, "Dmitri Belous, IIIT, 2016, v1.1.5");
         }
         if (infoObject != null) {
             if (infoObject instanceof Planet) {
