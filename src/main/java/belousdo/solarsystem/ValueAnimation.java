@@ -1,5 +1,7 @@
 package belousdo.solarsystem;
 
+import org.apache.commons.math3.util.FastMath;
+
 /**
  * Created by Dmitri on 14.12.2016.
  */
@@ -25,12 +27,12 @@ public class ValueAnimation {
         if (!started) {
             return 0;
         }
-        if (Math.abs(aim - value) <= step) {
+        if (FastMath.abs(aim - value) <= step) {
             reset();
             return aim - value;
         }
-        double dValue = step * Math.signum(aim - value);
-        if ((step * 3 - minStep) / (ANIMATION_SPEED - 1) < Math.abs(aim - value)) {
+        double dValue = step * FastMath.signum(aim - value);
+        if ((step * 3 - minStep) / (ANIMATION_SPEED - 1) < FastMath.abs(aim - value)) {
             step *= ANIMATION_SPEED;
         } else {
             step /= ANIMATION_SPEED;

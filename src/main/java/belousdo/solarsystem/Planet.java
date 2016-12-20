@@ -1,7 +1,12 @@
 package belousdo.solarsystem;
 
+import org.apache.commons.math3.util.FastMath;
+
 import java.awt.*;
-import java.awt.geom.*;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Arc2D;
+import java.awt.geom.Area;
+import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.Random;
 
@@ -35,11 +40,11 @@ public class Planet extends CircleUiObject {
     }
 
     private void recalcX() {
-        x = xOffset + orbitRadius * Math.cos(phi);
+        x = xOffset + orbitRadius * FastMath.cos(phi);
     }
 
     private void recalcY() {
-        y = yOffset + orbitRadius * Math.sin(phi);
+        y = yOffset + orbitRadius * FastMath.sin(phi);
     }
 
     @Override

@@ -1,11 +1,15 @@
 package belousdo.solarsystem;
 
+import org.apache.commons.math3.util.FastMath;
+
 import javax.swing.*;
 import javax.swing.event.MouseInputAdapter;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.font.TextAttribute;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.NoninvertibleTransformException;
+import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.io.Closeable;
 import java.io.IOException;
@@ -37,7 +41,6 @@ public class DrawPanel extends JPanel implements Closeable {
     private boolean help = false;
     private UiObject infoObject;
 
-    private boolean mousePressed = false;
     private int dragX;
     private int dragY;
 
@@ -78,7 +81,20 @@ public class DrawPanel extends JPanel implements Closeable {
         });
         timer.start();
 
-        addMouseWheelListener(e -> changeScale(e.getWheelRotation(), e.getX(), e.getY()));
+        addMouseWheelListener(e -> {
+            double scaleScale = e.getWheelRotation();
+            if (scaleScale < 0) {
+                scaleScale = 0.5 - scaleScale;
+            } else {
+                scaleScale = 1 / (scaleScale + 0.5);
+            }
+            Rectangle rectangle = DrawPanel.this.getBounds();
+            double width = rectangle.getWidth() / scale;
+            double height = rectangle.getHeight() / scale;
+            double mouseX = e.getX() / scale + x - width / 2.;
+            double mouseY = -e.getY() / scale + y + height / 2.;
+            cameraAnimation.init((scaleScale - 1) * scale, scale, mouseX, mouseY, x, y);
+        });
 
         addMouseMotionListener(new MouseMotionAdapter() {
             @Override
@@ -108,30 +124,30 @@ public class DrawPanel extends JPanel implements Closeable {
 
             @Override
             public void mouseDragged(MouseEvent e) {
-                if (mousePressed) {
-                    xAnimation.reset();
-                    yAnimation.reset();
-                    x -= (e.getX() - dragX) / scale;
-                    if (x > 9.46073047258e32) { // 1e20 light years
-                        x = 9.46073047258e32;
-                    } else if (x < -9.46073047258e32) { // -1e20 light years
-                        x = -9.46073047258e32;
-                    }
-                    dragX = e.getX();
-                    y += (e.getY() - dragY) / scale;
-                    if (y > 9.46073047258e32) { // 1e20 light years
-                        y = 9.46073047258e32;
-                    } else if (y < -9.46073047258e32) { // -1e20 light years
-                        y = -9.46073047258e32;
-                    }
-                    dragY = e.getY();
+                xAnimation.reset();
+                yAnimation.reset();
+                x -= (e.getX() - dragX) / scale;
+                if (x > 9.46073047258e32) { // 1e20 light years
+                    x = 9.46073047258e32;
+                } else if (x < -9.46073047258e32) { // -1e20 light years
+                    x = -9.46073047258e32;
                 }
+                dragX = e.getX();
+                y += (e.getY() - dragY) / scale;
+                if (y > 9.46073047258e32) { // 1e20 light years
+                    y = 9.46073047258e32;
+                } else if (y < -9.46073047258e32) { // -1e20 light years
+                    y = -9.46073047258e32;
+                }
+                dragY = e.getY();
             }
         });
 
         addMouseListener(new MouseInputAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
+                xAnimation.reset();
+                yAnimation.reset();
                 if (getCursor() == Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)) {
                     for (int i = uiObjects.size() - 1; i >= 0; --i) {
                         UiObject uiObject = uiObjects.get(i);
@@ -145,12 +161,10 @@ public class DrawPanel extends JPanel implements Closeable {
                 }
                 dragX = e.getX();
                 dragY = e.getY();
-                mousePressed = true;
             }
 
             @Override
             public void mouseReleased(MouseEvent e) {
-                mousePressed = false;
                 if (selLineRect.contains(e.getX(), e.getY())) {
                     goToSelected();
                 }
@@ -158,14 +172,6 @@ public class DrawPanel extends JPanel implements Closeable {
         });
 
         addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyReleased(KeyEvent e) {
-                int keyCode = e.getKeyCode();
-                if (keyCode == 61 || keyCode == 107 || keyCode == '-' || keyCode == 109) {
-                    cameraAnimation.reset();
-                }
-            }
-
             @Override
             public void keyPressed(KeyEvent e) {
 //                System.out.println(e.getKeyChar());
@@ -241,7 +247,7 @@ public class DrawPanel extends JPanel implements Closeable {
                     return;
                 }
                 for (UiObject uiObject : priorityMapForLabels.values()) {
-                    if (uiObject != null && (uiObject.getKey() == keyCode || (int) Character.toLowerCase(uiObject.getCh()) == (int) e.getKeyChar())) {
+                    if (uiObject != null && (uiObject.getKey() == keyCode || (int) Character.toLowerCase(uiObject.getCh()) == (int) Character.toLowerCase(e.getKeyChar()))) {
                         selected.setSelected(false);
                         uiObject.setSelected(true);
                         selected = uiObject;
@@ -258,21 +264,6 @@ public class DrawPanel extends JPanel implements Closeable {
         yAnimation.init(1 / scale, selected.getY());
     }
 
-    public void changeScale(int rotation, double pixMouseX, double pixMouseY) {
-        double scaleScale = rotation;
-        if (scaleScale < 0) {
-            scaleScale = 0.5 - scaleScale;
-        } else {
-            scaleScale = 1 / (scaleScale + 0.5);
-        }
-        Rectangle rectangle = DrawPanel.this.getBounds();
-        double width = rectangle.getWidth() / scale;
-        double height = rectangle.getHeight() / scale;
-        double mouseX = pixMouseX / scale + x - width / 2.;
-        double mouseY = -pixMouseY / scale + y + height / 2.;
-        cameraAnimation.init((scaleScale - 1) * scale, scale, mouseX, mouseY, x, y);
-    }
-
     @Override
     public void paint(Graphics g) {
         super.paint(g);
@@ -286,7 +277,7 @@ public class DrawPanel extends JPanel implements Closeable {
         AffineTransform transform = new AffineTransform();
         transform.scale(scale, -scale);
         rectangle = graphics2D.getClipBounds();
-        transform.translate(-x + rectangle.getWidth() / 2 / scale, -y - rectangle.getHeight() / 2 / scale);
+        transform.translate(-x + rectangle.getWidth() / (2. * scale), -y - rectangle.getHeight() / (2. * scale));
 
         for (UiObject uiObject : uiObjects) {
             if (uiObject != selected) {
@@ -332,7 +323,12 @@ public class DrawPanel extends JPanel implements Closeable {
         mainHeight = 0;
         leftSide = true;
         drawMainString(graphics2D, "В одном пикселе " + distance(1 / scale));
-        drawMainString(graphics2D, distance(Math.sqrt(x * x + y * y)) + " от Солнца");
+        try {
+            Point2D point = transform.inverseTransform(getMousePosition(), new Point2D.Double());
+            drawMainString(graphics2D, distance(Math.sqrt(point.getX() * point.getX() + point.getY() * point.getY())) + " от Солнца");
+        } catch (NoninvertibleTransformException e) {
+            e.printStackTrace();
+        }
         drawMainString(graphics2D, "В одной секунде " + time(timeScale));
         drawSelLabel(graphics2D);
 
@@ -413,19 +409,19 @@ public class DrawPanel extends JPanel implements Closeable {
         if (value == 0) {
             return "0.00 м";
         }
-        if (Math.abs(value) < 1e-6) {
+        if (FastMath.abs(value) < 1e-6) {
             return String.format("%.2e м", value * 1e3);
         }
-        if (Math.abs(value) < 1e-5) {
+        if (FastMath.abs(value) < 1e-5) {
             return String.format("%.2f мм", value * 1e6);
         }
-        if (Math.abs(value) < 1e-3) {
+        if (FastMath.abs(value) < 1e-3) {
             return String.format("%.2f см", value * 1e5);
         }
-        if (Math.abs(value) < 1) {
+        if (FastMath.abs(value) < 1) {
             return String.format("%.2f м", value * 1e3);
         }
-        if (Math.abs(value) < 9460730472580d) {
+        if (FastMath.abs(value) < 9460730472580d) {
             return value(value) + " км";
         }
         return value(value / 9460730472580d) + " световых лет";
@@ -435,41 +431,41 @@ public class DrawPanel extends JPanel implements Closeable {
         if (time == 0) {
             return "0.00 c";
         }
-        if (Math.abs(time) < 1e-3) {
+        if (FastMath.abs(time) < 1e-3) {
             return String.format("%.2e c", time);
         }
-        if (Math.abs(time) < 1) {
+        if (FastMath.abs(time) < 1) {
             return String.format("%.2f мс", time * 1e3);
         }
-        if (Math.abs(time) < 60) {
+        if (FastMath.abs(time) < 60) {
             return String.format("%.2f с", time);
         }
-        if (Math.abs(time) < 3600) {
+        if (FastMath.abs(time) < 3600) {
             return String.format("%.2f минут", time / 60);
         }
-        if (Math.abs(time) < 3600 * 24) {
+        if (FastMath.abs(time) < 3600 * 24) {
             return String.format("%.2f часов", time / 3600);
         }
-        if (Math.abs(time) < 3600 * 24 * 365.25) {
+        if (FastMath.abs(time) < 3600 * 24 * 365.25) {
             return String.format("%.2f суток", time / 86400);
         }
         return value(time / 31557600) + " лет";
     }
 
     private static String value(double value) {
-        if (Math.abs(value) < 1e3) {
+        if (FastMath.abs(value) < 1e3) {
             return String.format("%.2f", value);
         }
-        if (Math.abs(value) < 1e6) {
+        if (FastMath.abs(value) < 1e6) {
             return String.format("%.2f тыс.", value / 1e3);
         }
-        if (Math.abs(value) < 1e9) {
+        if (FastMath.abs(value) < 1e9) {
             return String.format("%.2f млн", value / 1e6);
         }
-        if (Math.abs(value) < 1e12) {
+        if (FastMath.abs(value) < 1e12) {
             return String.format("%.2f млрд", value / 1e9);
         }
-        if (Math.abs(value) < 1e15) {
+        if (FastMath.abs(value) < 1e15) {
             return String.format("%.2f трлн", value / 1e12);
         }
         return String.format("%.2e", value);
@@ -478,15 +474,5 @@ public class DrawPanel extends JPanel implements Closeable {
     @Override
     public void close() throws IOException {
         timer.stop();
-    }
-
-    public static void main(String[] args) {
-        double start = Double.MIN_VALUE;
-        while (Math.nextUp(start) / start > 1.2) {
-            System.out.println(Math.nextUp(start) / start);
-            System.out.println(start);
-            start = Math.nextUp(start);
-            System.out.println();
-        }
     }
 }

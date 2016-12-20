@@ -127,7 +127,7 @@ public abstract class CircleUiObject implements UiObject {
         int titleWidth = titleMetrics.stringWidth(title);
         int subTitleWidth = subTitleMetrics.stringWidth(subTitle);
 
-        int width = (showSubTitle ? Math.max(titleWidth, subTitleWidth) : titleWidth);
+        int width = (showSubTitle && subTitleWidth > titleWidth ? subTitleWidth : titleWidth);
 
         double y;
         Color labelColor;
@@ -165,7 +165,7 @@ public abstract class CircleUiObject implements UiObject {
             return;
         }
 
-        double subTitleX = distPoint.getX() - subTitleWidth / 2;
+        double subTitleX = distPoint.getX() - subTitleWidth / 2.;
         subTitleRectangle.setRect(subTitleX - 2, y + 2, subTitleWidth + 5, subTitleHeight);
         if (fillColor != null) {
             graphics2D.setColor(fillColor);
