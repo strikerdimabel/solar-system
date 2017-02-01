@@ -29,6 +29,7 @@ public class Planet extends CircleUiObject {
 
     private double e;
     private double t;
+    private double T;
     private final double rotation = 2 * Math.PI * RANDOM.nextDouble();
     private AffineTransform rotationTransform = new AffineTransform();
 
@@ -39,6 +40,7 @@ public class Planet extends CircleUiObject {
         super(title, key, ch, subTitle, radius, color);
         this.orbitRadius = orbitRadius;
         semiMinorAxis = orbitRadius * (1 - e*e);
+        this.T = t;
         this.speed = 2 * Math.PI / t;
         this.t = t * RANDOM.nextDouble();
         this.e = e;
@@ -54,8 +56,6 @@ public class Planet extends CircleUiObject {
     }
 
     private void recalc() {
-//        notRotatedX = xOffset + orbitRadius * FastMath.cos(phi);
-//        notRotatedY = yOffset + orbitRadius * FastMath.sin(phi);
         double M = t*speed;
         double EPrev = M;
         while (true) {
@@ -63,7 +63,6 @@ public class Planet extends CircleUiObject {
             double diff = Math.abs(ENew - EPrev);
             EPrev = ENew;
             if (diff < EPSILON) {
-//                System.out.println(count);
                 break;
             }
         }
@@ -129,8 +128,8 @@ public class Planet extends CircleUiObject {
 
     public void onTick(double timePassed) {
         t += timePassed;
-        if (t == Double.POSITIVE_INFINITY) {
-            t = 0;
+        if (t > T) {
+            t = t - Math.floor(t / T) * T;
         }
         recalc();
         for (Planet moon : getMoons()) {
@@ -139,7 +138,7 @@ public class Planet extends CircleUiObject {
     }
 
     public double getT() {
-        return 2 * Math.PI / speed;
+        return T;
     }
 
     public double getOrbitRaduis() {
