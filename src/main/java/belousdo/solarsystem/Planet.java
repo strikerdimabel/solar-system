@@ -1,7 +1,5 @@
 package belousdo.solarsystem;
 
-import org.apache.commons.math3.util.FastMath;
-
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Arc2D;
@@ -17,30 +15,63 @@ import static belousdo.solarsystem.DrawPanel.MAX_RECT;
 public class Planet extends CircleUiObject {
 
     private static final Random RANDOM = new Random();
+    private static final double EPSILON = 0.001;
 
     private final double orbitRadius;
+    private final double semiMinorAxis;
     private final double speed;
-    private double xOffset = 0;
-    private double yOffset = 0;
+    private double xOffset;
+    private double yOffset;
     private double x;
     private double y;
+    private double notRotatedX;
+    private double notRotatedY;
 
+    private double e;
+    private double t;
+    private final double rotation = 2 * Math.PI * RANDOM.nextDouble();
+    private AffineTransform rotationTransform = new AffineTransform();
+
+    // remove
     private double phi = 2 * Math.PI * RANDOM.nextDouble();
 
-    public Planet(String title, int key, char ch, String subTitle, double orbitRadius, double radius, double speed, Color color) {
+    public Planet(String title, int key, char ch, String subTitle, double orbitRadius, double e, double radius, double t, Color color) {
         super(title, key, ch, subTitle, radius, color);
         this.orbitRadius = orbitRadius;
-        this.speed = speed;
-        recalcX();
-        recalcY();
+        semiMinorAxis = orbitRadius * (1 - e*e);
+        this.speed = 2 * Math.PI / t;
+        this.t = t * RANDOM.nextDouble();
+        this.e = e;
+        setOffset(0, 0);
     }
 
-    private void recalcX() {
-        x = xOffset + orbitRadius * FastMath.cos(phi);
+    public void setOffset(double xOffset, double yOffset) {
+        this.xOffset = xOffset;
+        this.yOffset = yOffset;
+        rotationTransform.setToIdentity();
+        rotationTransform.rotate(rotation, xOffset, yOffset);
+        recalc();
     }
 
-    private void recalcY() {
-        y = yOffset + orbitRadius * FastMath.sin(phi);
+    private void recalc() {
+//        notRotatedX = xOffset + orbitRadius * FastMath.cos(phi);
+//        notRotatedY = yOffset + orbitRadius * FastMath.sin(phi);
+        double M = t*speed;
+        double EPrev = M;
+        while (true) {
+            double ENew = e * Math.sin(EPrev) + M;
+            double diff = Math.abs(ENew - EPrev);
+            EPrev = ENew;
+            if (diff < EPSILON) {
+//                System.out.println(count);
+                break;
+            }
+        }
+        notRotatedX = orbitRadius * (Math.cos(EPrev) - e) + xOffset;
+        notRotatedY = semiMinorAxis * Math.sin(EPrev) + yOffset;
+        Point2D coords = rotationTransform.transform(new Point2D.Double(notRotatedX, notRotatedY), new Point2D.Double());
+        x = coords.getX();
+        y = coords.getY();
     }
 
     @Override
@@ -58,18 +89,20 @@ public class Planet extends CircleUiObject {
         Rectangle bounds = graphics2D.getClipBounds();
         bounds.setBounds(-1, 0, bounds.width + 1, bounds.height);
         if (!hidden()) {
-            Shape orbit = new Arc2D.Double();
-            ((Arc2D) orbit).setArcByCenter(
-                xOffset, yOffset, orbitRadius, 0, 360, Arc2D.OPEN
+            Shape newOrbit = new Arc2D.Double(
+                xOffset - orbitRadius * (1 + e), yOffset - semiMinorAxis,
+                2 * orbitRadius, 2 * semiMinorAxis,
+                0, 360, Arc2D.OPEN
             );
-            ((Arc2D) orbit).setAngleStart(new Point2D.Double(getX(), getY()));
-            orbit = transform.createTransformedShape(orbit);
-            if (!MAX_RECT.contains(orbit.getBounds2D())) {
-                Area orbitArea = new Area(orbit);
+            ((Arc2D) newOrbit).setAngleStart(new Point2D.Double(notRotatedX, notRotatedY));
+            newOrbit = rotationTransform.createTransformedShape(newOrbit);
+            newOrbit = transform.createTransformedShape(newOrbit);
+            if (!MAX_RECT.contains(newOrbit.getBounds2D())) {
+                Area orbitArea = new Area(newOrbit);
                 orbitArea.intersect(new Area(bounds));
-                orbit = orbitArea;
+                newOrbit = orbitArea;
             }
-            graphics2D.draw(orbit);
+            graphics2D.draw(newOrbit);
         }
 
         for (Ring ring : getRings()) {
@@ -94,26 +127,14 @@ public class Planet extends CircleUiObject {
         super.onDraw(graphics2D, transform);
     }
 
-    public void setXOffset(double xOffset) {
-        this.xOffset = xOffset;
-        recalcX();
-    }
-
-    public void setYOffset(double yOffset) {
-        this.yOffset = yOffset;
-        recalcY();
-    }
-
     public void onTick(double timePassed) {
-        phi += timePassed * speed;
-        if (phi == Double.POSITIVE_INFINITY) {
-            phi = 0;
+        t += timePassed;
+        if (t == Double.POSITIVE_INFINITY) {
+            t = 0;
         }
-        recalcX();
-        recalcY();
+        recalc();
         for (Planet moon : getMoons()) {
-            moon.setXOffset(getX());
-            moon.setYOffset(getY());
+            moon.setOffset(getX(), getY());
         }
     }
 

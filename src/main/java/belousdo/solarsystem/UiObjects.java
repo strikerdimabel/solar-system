@@ -40,7 +40,7 @@ public class UiObjects {
                     double semiMajorAxis = Double.parseDouble(tokens[5]);
                     double t = Double.parseDouble(tokens[6]);
                     double e = Double.parseDouble(tokens[7]);
-                    newObject = new Planet(title, keyCode, key, subTitle, semiMajorAxis, radius, 2 * Math.PI / t, new Color(color));
+                    newObject = new Planet(title, keyCode, key, subTitle, semiMajorAxis, e, radius, t, new Color(color));
                     if (title.equals("МКС")) {
                         newObject.setShowHint(false);
                     }
