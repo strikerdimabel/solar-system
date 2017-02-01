@@ -1,5 +1,6 @@
 package belousdo.solarsystem;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -7,13 +8,16 @@ import java.awt.*;
 import java.awt.font.TextAttribute;
 import java.awt.geom.*;
 import java.text.AttributedString;
+import java.util.*;
+import java.util.List;
 
 import static belousdo.solarsystem.DrawPanel.*;
 
 /**
  * Created by belous.dmitri on 14.12.2016.
  */
-public abstract class CircleUiObject implements UiObject {
+@EqualsAndHashCode(of="title")
+public abstract class CircleUiObject {
 
     private static final int HINT_RADIUS = 10;
     public static final Rectangle EMPTY_AREA = new Rectangle();
@@ -33,6 +37,9 @@ public abstract class CircleUiObject implements UiObject {
     private Rectangle2D titleRectangle = new Rectangle2D.Double();
     private Rectangle2D subTitleRectangle = new Rectangle2D.Double();
 
+    private final List<Planet> moons = new ArrayList<>();
+    private final List<Ring> rings = new ArrayList<>();
+
     protected CircleUiObject(String title, int key, char ch, String subTitle, double radius, Color color) {
         this.title = title;
         this.ch = ch;
@@ -50,17 +57,14 @@ public abstract class CircleUiObject implements UiObject {
         return ch;
     }
 
-    @Override
     public String getSubTitle() {
         return subTitle;
     }
 
-    @Override
     public String getTitle() {
         return title;
     }
 
-    @Override
     public void showSubtitle(boolean show) {
         showSubTitle = show;
     }
@@ -69,7 +73,8 @@ public abstract class CircleUiObject implements UiObject {
         this.selected = selected;
     }
 
-    @Override
+    public abstract void onTick(double timePassed);
+
     public int getKey() {
         return key;
     }
@@ -107,7 +112,10 @@ public abstract class CircleUiObject implements UiObject {
         graphics2D.draw(hintShape);
     }
 
-    @Override
+    protected abstract double getY();
+
+    protected abstract double getX();
+
     public void text(Graphics2D graphics2D, AffineTransform transform) {
         if (hidden()) {
             titleRectangle.setRect(-1, -1, 0, 0);
@@ -175,12 +183,35 @@ public abstract class CircleUiObject implements UiObject {
         graphics2D.drawString(subTitle, (float) subTitleX, (float) y + subTitleHeight - 3);
     }
 
-    @Override
     public boolean in(double x, double y) {
         return
             titleRectangle.contains(x, y) ||
             hintShape.contains(x, y) ||
             shape.contains(x, y) ||
             showSubTitle && subTitleRectangle.contains(x, y);
+    }
+
+    public int getMoonsCount() {
+        return moons.size();
+    }
+
+    public int getRingsCount() {
+        return rings.size();
+    }
+
+    public List<Planet> getMoons() {
+        return moons;
+    }
+
+    public List<Ring> getRings() {
+        return rings;
+    }
+
+    public void addMoon(Planet planet) {
+        moons.add(planet);
+    }
+
+    public void addRing(Ring ring) {
+        rings.add(ring);
     }
 }

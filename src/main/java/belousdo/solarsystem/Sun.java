@@ -7,9 +7,8 @@ import java.awt.*;
  */
 public class Sun extends CircleUiObject {
 
-    public Sun(String title, int key, char ch, String subTitle, double radius) {
-        super(title, key, ch, subTitle, radius, new Color(255,255,220));
-        setSelected(true);
+    public Sun(String title, int key, char ch, String subTitle, double radius, Color color) {
+        super(title, key, ch, subTitle, radius, color);
     }
 
     @Override
@@ -25,23 +24,19 @@ public class Sun extends CircleUiObject {
     public void onTick(double timePassed) {
     }
 
-    @Override
     public double getT() {
         return 0;
     }
 
-    @Override
     public double getOrbitRaduis() {
         return 0;
     }
 
-    @Override
-    public int getMoons() {
+    public int getMoonsCount() {
         return 0;
     }
 
-    @Override
-    public int getRings() {
+    public int getRingsCount() {
         return 0;
     }
 }

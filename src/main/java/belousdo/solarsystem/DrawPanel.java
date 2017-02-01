@@ -13,6 +13,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.text.AttributedString;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Created dragY Dmitri on 13.12.2016.
@@ -34,16 +35,16 @@ public class DrawPanel extends JPanel implements Closeable {
     private double scale = 0.0001;
     private double timeScale = 1;
 
-    private UiObject selected;
+    private CircleUiObject selected;
 
     private boolean help = false;
-    private UiObject infoObject;
+    private CircleUiObject infoObject;
 
     private int dragX;
     private int dragY;
 
-    private final java.util.List<UiObject> uiObjects;
-    private final Map<Integer, UiObject> priorityMapForLabels;
+    private final TreeMap<Integer, CircleUiObject> uiObjects;
+    private final Map<Integer, CircleUiObject> priorityMapForLabels;
     private final Timer timer;
     private final CameraAnimation cameraAnimation = new CameraAnimation();
     private final ValueAnimation xAnimation = new ValueAnimation();
@@ -54,6 +55,7 @@ public class DrawPanel extends JPanel implements Closeable {
         UiObjects uiObjectsGenerator = new UiObjects();
         uiObjects = uiObjectsGenerator.uiObjects();
         selected = uiObjects.get(0);
+        selected.setSelected(true);
         priorityMapForLabels = uiObjectsGenerator.getPriorityMap();
 
         timer = new Timer(TIMER_DELAY, new AbstractAction() {
@@ -61,7 +63,7 @@ public class DrawPanel extends JPanel implements Closeable {
             public void actionPerformed(ActionEvent e) {
                 double oldX = selected.getX();
                 double oldY = selected.getY();
-                for (UiObject uiObject : uiObjects) {
+                for (CircleUiObject uiObject : uiObjects.values()) {
                     uiObject.onTick(TIMER_DELAY * timeScale / 1000);
                 }
                 x += selected.getX() - oldX;
@@ -105,7 +107,7 @@ public class DrawPanel extends JPanel implements Closeable {
                     infoObject = selected;
                     infoObject.showSubtitle(true);
                 } else {
-                    for (UiObject uiObject : uiObjects) {
+                    for (CircleUiObject uiObject : uiObjects.values()) {
                         if (uiObject.in(e.getX(), e.getY())) {
                             infoObject = uiObject;
                             infoObject.showSubtitle(true);
@@ -144,17 +146,22 @@ public class DrawPanel extends JPanel implements Closeable {
         addMouseListener(new MouseInputAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                if (getCursor() == Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)) {
-                    for (int i = uiObjects.size() - 1; i >= 0; --i) {
-                        UiObject uiObject = uiObjects.get(i);
-                        if (uiObject.in(e.getX(), e.getY())) {
-                            selected.setSelected(false);
-                            uiObject.setSelected(true);
-                            selected = uiObject;
-                            goToSelected();
-                        }
-                    }
+                if (infoObject != null) {
+                    selected.setSelected(false);
+                    infoObject.setSelected(true);
+                    selected = infoObject;
+                    goToSelected();
                 }
+//                if (getCursor() == Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)) {
+//                    for (CircleUiObject uiObject : uiObjects.values()) {
+//                        if (uiObject.in(e.getX(), e.getY())) {
+//                            selected.setSelected(false);
+//                            uiObject.setSelected(true);
+//                            selected = uiObject;
+//                            goToSelected();
+//                        }
+//                    }
+//                }
                 dragX = e.getX();
                 dragY = e.getY();
             }
@@ -242,7 +249,7 @@ public class DrawPanel extends JPanel implements Closeable {
                     repaint();
                     return;
                 }
-                for (UiObject uiObject : priorityMapForLabels.values()) {
+                for (CircleUiObject uiObject : priorityMapForLabels.values()) {
                     if (uiObject != null && (uiObject.getKey() == keyCode || (int) Character.toLowerCase(uiObject.getCh()) == (int) Character.toLowerCase(e.getKeyChar()))) {
                         selected.setSelected(false);
                         uiObject.setSelected(true);
@@ -275,14 +282,14 @@ public class DrawPanel extends JPanel implements Closeable {
         rectangle = graphics2D.getClipBounds();
         transform.translate(-x + rectangle.getWidth() / (2. * scale), -y - rectangle.getHeight() / (2. * scale));
 
-        for (UiObject uiObject : uiObjects) {
+        for (CircleUiObject uiObject : uiObjects.descendingMap().values()) {
             if (uiObject != selected) {
                 uiObject.onDraw(graphics2D, transform);
             }
         }
         selected.onDraw(graphics2D, transform);
 
-        for (UiObject uiObject : uiObjects) {
+        for (CircleUiObject uiObject : uiObjects.descendingMap().values()) {
             if (uiObject != selected) {
                 uiObject.text(graphics2D, transform);
             }
@@ -296,19 +303,20 @@ public class DrawPanel extends JPanel implements Closeable {
 
         infoHeight = rectangle.height + textHeight;
         if (help) {
-            drawInfoString(graphics2D, "Dmitri Belous, IIIT, 2016, v1.1.5");
+            drawInfoString(graphics2D, "Dmitri Belous, IIIT, 2016, v1.1.6");
         }
         if (infoObject != null) {
             if (infoObject instanceof Planet) {
-                drawInfoString(graphics2D, "Период обращения: " + time(infoObject.getT()));
-                drawInfoString(graphics2D, "Радиус орбиты: " + distance(infoObject.getOrbitRaduis()));
+                Planet planet = (Planet) infoObject;
+                drawInfoString(graphics2D, "Период обращения: " + time(planet.getT()));
+                drawInfoString(graphics2D, "Радиус орбиты: " + distance(planet.getOrbitRaduis()));
             }
             drawInfoString(graphics2D, "Радиус: " + distance(infoObject.getRadius()));
-            int rings = infoObject.getRings();
+            int rings = infoObject.getRingsCount();
             if (rings != 0) {
                 drawInfoString(graphics2D, "Колец: " + rings);
             }
-            int moons = infoObject.getMoons();
+            int moons = infoObject.getMoonsCount();
             if (moons != 0) {
                 drawInfoString(graphics2D, "Спутников: " + moons);
             }
@@ -319,7 +327,7 @@ public class DrawPanel extends JPanel implements Closeable {
         mainHeight = 0;
         leftSide = true;
         drawMainString(graphics2D, "В одном пикселе " + distance(1 / scale));
-        drawMainString(graphics2D, distance(Math.sqrt(x*x + y*y)) + " от Солнца");
+        drawMainString(graphics2D, distance(Math.sqrt(x * x + y * y)) + " от Солнца");
         drawMainString(graphics2D, "В одной секунде " + time(timeScale));
         drawSelLabel(graphics2D);
 
@@ -334,12 +342,13 @@ public class DrawPanel extends JPanel implements Closeable {
             drawMainString(graphics2D, "");
             drawMainString(graphics2D, "Перейти к объекту:");
             drawMainString(graphics2D, "");
-            for (UiObject uiObject : priorityMapForLabels.values()) {
-                if (uiObject != null) {
-                    drawMainString(graphics2D, uiObject.getCh() + " - " + (uiObject.getTitle().length() == 0 ? uiObject.getSubTitle() : uiObject.getTitle()));
-                } else {
+            int priority = 0;
+            for (Map.Entry<Integer, CircleUiObject> uiObject : priorityMapForLabels.entrySet()) {
+                if (priority != uiObject.getKey()) {
                     drawMainString(graphics2D, "");
                 }
+                priority = uiObject.getKey() + 1;
+                drawMainString(graphics2D, uiObject.getValue().getCh() + " - " + uiObject.getValue().getTitle());
             }
         }
     }

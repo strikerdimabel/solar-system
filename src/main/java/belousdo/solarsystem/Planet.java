@@ -7,7 +7,6 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Arc2D;
 import java.awt.geom.Area;
 import java.awt.geom.Point2D;
-import java.util.ArrayList;
 import java.util.Random;
 
 import static belousdo.solarsystem.DrawPanel.MAX_RECT;
@@ -25,9 +24,6 @@ public class Planet extends CircleUiObject {
     private double yOffset = 0;
     private double x;
     private double y;
-
-    private final java.util.List<Planet> moons = new ArrayList<>();
-    private final java.util.List<Ring> rings = new ArrayList<>();
 
     private double phi = 2 * Math.PI * RANDOM.nextDouble();
 
@@ -76,7 +72,7 @@ public class Planet extends CircleUiObject {
             graphics2D.draw(orbit);
         }
 
-        for (Ring ring : rings) {
+        for (Ring ring : getRings()) {
             Shape outerRing = new Arc2D.Double();
             ((Arc2D) outerRing).setArcByCenter(
                 getX(), getY(), ring.getOutR(), 0, 360, Arc2D.OPEN
@@ -115,37 +111,18 @@ public class Planet extends CircleUiObject {
         }
         recalcX();
         recalcY();
-        for (Planet moon : moons) {
+        for (Planet moon : getMoons()) {
             moon.setXOffset(getX());
             moon.setYOffset(getY());
         }
     }
 
-    public void addMoon(Planet planet) {
-        moons.add(planet);
-    }
-
-    public void addRing(Ring ring) {
-        rings.add(ring);
-    }
-
-    @Override
     public double getT() {
         return 2 * Math.PI / speed;
     }
 
-    @Override
     public double getOrbitRaduis() {
         return orbitRadius;
     }
 
-    @Override
-    public int getMoons() {
-        return moons.size();
-    }
-
-    @Override
-    public int getRings() {
-        return rings.size();
-    }
 }
