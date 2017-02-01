@@ -3,8 +3,7 @@
 Исполняемый файл можно скачать по ссылке:</br>
 https://github.com/strikerdimabel/solar-system/raw/master/target/Solar%20system.jar</br>
 </br>
-
-Текущая версия программы: 1.1.6.
+Текущая версия программы: 1.1.6.</br>
 1. Данные перемещены в файлы ресурсов.</br>
 </br>
 1.1.5.</br>
