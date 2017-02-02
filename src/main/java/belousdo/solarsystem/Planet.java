@@ -162,10 +162,11 @@ public class Planet extends CircleUiObject {
             Area ringArea = new Area(outerRing);
             ringArea.subtract(new Area(innerRing));
             if (!ringArea.intersects(bounds)) {
-                return;
+                continue;
             }
             if (!MAX_RECT.contains(ringArea.getBounds2D())) {
                 ringArea.intersect(new Area(bounds));
+                System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
             }
             graphics2D.setColor(ring.getColor());
             graphics2D.fill(ringArea);

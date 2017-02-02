@@ -21,7 +21,7 @@ import java.util.TreeMap;
  */
 public class DrawPanel extends JPanel implements Closeable {
 
-    public static final Rectangle MAX_RECT = new Rectangle(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
+    public static final Rectangle MAX_RECT = new Rectangle(Integer.MIN_VALUE / 2, Integer.MIN_VALUE / 2, Integer.MAX_VALUE, Integer.MAX_VALUE);
     private static final int TIMER_DELAY = 33;
     private static final int MOVE_SIZE = 10;
     private static final double MOVE_SCALE = 0.03;
