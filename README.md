@@ -3,7 +3,6 @@
 Исполняемый файл можно скачать по ссылке:</br>
 https://github.com/strikerdimabel/solar-system/raw/master/target/Solar%20system.jar</br>
 </br>
-</br>
 Текущая версия программы: 1.1.8</br>
 1. Переключение круговых орбит и эллиптических.</br>
 2. Оптимизация производительности.</br>
