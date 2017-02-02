@@ -16,6 +16,7 @@ public class Planet extends CircleUiObject {
 
     private static final Random RANDOM = new Random();
     private static final double EPSILON = 0.001;
+    private static final double PI_2 = Math.PI * 2;
 
     private final double orbitRadius;
     private final double semiMinorAxis;
@@ -28,49 +29,72 @@ public class Planet extends CircleUiObject {
     private double notRotatedY;
 
     private double e;
-    private double t;
     private double T;
-    private final double rotation = 2 * Math.PI * RANDOM.nextDouble();
+    private final double rotation = PI_2 * RANDOM.nextDouble();
     private AffineTransform rotationTransform = new AffineTransform();
 
+    private boolean ellipseOrbit = false;
+
     // remove
-    private double phi = 2 * Math.PI * RANDOM.nextDouble();
+    private double phi = PI_2 * RANDOM.nextDouble();
 
     public Planet(String title, int key, char ch, String subTitle, double orbitRadius, double e, double radius, double t, Color color) {
         super(title, key, ch, subTitle, radius, color);
         this.orbitRadius = orbitRadius;
         semiMinorAxis = orbitRadius * (1 - e*e);
         this.T = t;
-        this.speed = 2 * Math.PI / t;
-        this.t = t * RANDOM.nextDouble();
+        this.speed = PI_2 / t;
         this.e = e;
         setOffset(0, 0);
+        rotationTransform.rotate(rotation, xOffset, yOffset);
     }
 
     public void setOffset(double xOffset, double yOffset) {
         this.xOffset = xOffset;
         this.yOffset = yOffset;
-        rotationTransform.setToIdentity();
-        rotationTransform.rotate(rotation, xOffset, yOffset);
+        if (ellipseOrbit) {
+            rotationTransform.setToIdentity();
+            rotationTransform.rotate(rotation, xOffset, yOffset);
+        }
         recalc();
     }
 
-    private void recalc() {
-        double M = t*speed;
-        double EPrev = M;
-        while (true) {
-            double ENew = e * Math.sin(EPrev) + M;
-            double diff = Math.abs(ENew - EPrev);
-            EPrev = ENew;
-            if (diff < EPSILON) {
-                break;
+    public boolean isEllipseOrbit() {
+        return ellipseOrbit;
+    }
+
+    public void setEllipseOrbit(boolean ellipseOrbit) {
+        if (ellipseOrbit != this.ellipseOrbit) {
+            this.ellipseOrbit = ellipseOrbit;
+            if (ellipseOrbit) {
+                phi -= rotation;
+            } else {
+                phi += rotation;
             }
         }
-        notRotatedX = orbitRadius * (Math.cos(EPrev) - e) + xOffset;
-        notRotatedY = semiMinorAxis * Math.sin(EPrev) + yOffset;
-        Point2D coords = rotationTransform.transform(new Point2D.Double(notRotatedX, notRotatedY), new Point2D.Double());
-        x = coords.getX();
-        y = coords.getY();
+    }
+
+    private void recalc() {
+        if (ellipseOrbit) {
+            double M = phi;
+            double EPrev = M;
+            while (true) {
+                double ENew = e * Math.sin(EPrev) + M;
+                double diff = Math.abs(ENew - EPrev);
+                EPrev = ENew;
+                if (diff < EPSILON) {
+                    break;
+                }
+            }
+            notRotatedX = orbitRadius * (Math.cos(EPrev) - e) + xOffset;
+            notRotatedY = semiMinorAxis * Math.sin(EPrev) + yOffset;
+            Point2D coords = rotationTransform.transform(new Point2D.Double(notRotatedX, notRotatedY), new Point2D.Double());
+            x = coords.getX();
+            y = coords.getY();
+        } else {
+            x = orbitRadius * Math.cos(phi) + xOffset;
+            y = orbitRadius * Math.sin(phi) + yOffset;
+        }
     }
 
     @Override
@@ -87,15 +111,33 @@ public class Planet extends CircleUiObject {
         graphics2D.setColor(getColor());
         Rectangle bounds = graphics2D.getClipBounds();
         bounds.setBounds(-1, 0, bounds.width + 1, bounds.height);
+
+        orbit(graphics2D, transform, bounds);
+        rings(graphics2D, transform, bounds);
+
+        super.onDraw(graphics2D, transform);
+    }
+
+    private void orbit(Graphics2D graphics2D, AffineTransform transform, Rectangle bounds) {
         if (!hidden()) {
-            Shape newOrbit = new Arc2D.Double(
-                xOffset - orbitRadius * (1 + e), yOffset - semiMinorAxis,
-                2 * orbitRadius, 2 * semiMinorAxis,
-                0, 360, Arc2D.OPEN
-            );
-            ((Arc2D) newOrbit).setAngleStart(new Point2D.Double(notRotatedX, notRotatedY));
-            newOrbit = rotationTransform.createTransformedShape(newOrbit);
+            Shape newOrbit;
+            if (ellipseOrbit) {
+                newOrbit = new Arc2D.Double(
+                    xOffset - orbitRadius * (1 + e), yOffset - semiMinorAxis,
+                    2 * orbitRadius, 2 * semiMinorAxis,
+                    0, 360, Arc2D.OPEN
+                );
+                ((Arc2D) newOrbit).setAngleStart(new Point2D.Double(notRotatedX, notRotatedY));
+                newOrbit = rotationTransform.createTransformedShape(newOrbit);
+            } else {
+                newOrbit = new Arc2D.Double();
+                ((Arc2D) newOrbit).setArcByCenter(xOffset, yOffset, orbitRadius, 0, 360, Arc2D.OPEN);
+                ((Arc2D) newOrbit).setAngleStart(new Point2D.Double(x, y));
+            }
             newOrbit = transform.createTransformedShape(newOrbit);
+            if (!newOrbit.intersects(bounds)) {
+                return;
+            }
             if (!MAX_RECT.contains(newOrbit.getBounds2D())) {
                 Area orbitArea = new Area(newOrbit);
                 orbitArea.intersect(new Area(bounds));
@@ -103,7 +145,9 @@ public class Planet extends CircleUiObject {
             }
             graphics2D.draw(newOrbit);
         }
+    }
 
+    private void rings(Graphics2D graphics2D, AffineTransform transform, Rectangle bounds) {
         for (Ring ring : getRings()) {
             Shape outerRing = new Arc2D.Double();
             ((Arc2D) outerRing).setArcByCenter(
@@ -117,19 +161,21 @@ public class Planet extends CircleUiObject {
             innerRing = transform.createTransformedShape(innerRing);
             Area ringArea = new Area(outerRing);
             ringArea.subtract(new Area(innerRing));
+            if (!ringArea.intersects(bounds)) {
+                return;
+            }
             if (!MAX_RECT.contains(ringArea.getBounds2D())) {
                 ringArea.intersect(new Area(bounds));
             }
             graphics2D.setColor(ring.getColor());
             graphics2D.fill(ringArea);
         }
-        super.onDraw(graphics2D, transform);
     }
 
     public void onTick(double timePassed) {
-        t += timePassed;
-        if (t > T) {
-            t = t - Math.floor(t / T) * T;
+        phi += speed * timePassed;
+        if (phi > PI_2) {
+            phi = phi - Math.floor(phi / PI_2) * PI_2;
         }
         recalc();
         for (Planet moon : getMoons()) {

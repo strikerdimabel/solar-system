@@ -5,10 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.awt.*;
-import java.awt.font.TextAttribute;
 import java.awt.geom.*;
-import java.text.AttributedString;
-import java.util.*;
+import java.util.ArrayList;
 import java.util.List;
 
 import static belousdo.solarsystem.DrawPanel.*;
@@ -81,27 +79,15 @@ public abstract class CircleUiObject {
 
     public void onDraw(Graphics2D graphics2D, AffineTransform transform) {
         graphics2D.setColor(color);
+        shape(graphics2D, transform);
+        hint(graphics2D, transform);
+    }
 
-        Rectangle bounds = graphics2D.getClipBounds();
-        bounds.setBounds(-1, 0, bounds.width + 1, bounds.height);
-        shape = transform.createTransformedShape(new Arc2D.Double(
-            getX() - radius,
-            getY() - radius,
-            2*radius, 2*radius,
-            0, 360, Arc2D.OPEN
-        ));
-        if (!MAX_RECT.contains(shape.getBounds2D())) {
-            Area shapeArea = new Area(shape);
-            shapeArea.intersect(new Area(bounds));
-            shape = shapeArea;
-        }
-        graphics2D.fill(shape);
-
+    private void hint(Graphics2D graphics2D, AffineTransform transform) {
         if (hidden() || radius >= 0.5 / transform.getScaleX()) {
             hintShape = EMPTY_AREA;
             return;
         }
-
         Point2D point = transform.transform(new Point2D.Double(getX(), getY()), new Point2D.Double());
         hintShape = new Arc2D.Double(
             point.getX() - HINT_RADIUS,
@@ -110,6 +96,26 @@ public abstract class CircleUiObject {
             0, 360, Arc2D.OPEN
         );
         graphics2D.draw(hintShape);
+    }
+
+    private void shape(Graphics2D graphics2D, AffineTransform transform) {
+        Rectangle bounds = graphics2D.getClipBounds();
+        bounds.setBounds(-1, 0, bounds.width + 1, bounds.height);
+        shape = transform.createTransformedShape(new Arc2D.Double(
+            getX() - radius,
+            getY() - radius,
+            2*radius, 2*radius,
+            0, 360, Arc2D.OPEN
+        ));
+        if (!shape.intersects(bounds)) {
+            return;
+        }
+        if (!MAX_RECT.contains(shape.getBounds2D())) {
+            Area shapeArea = new Area(shape);
+            shapeArea.intersect(new Area(bounds));
+            shape = shapeArea;
+        }
+        graphics2D.fill(shape);
     }
 
     protected abstract double getY();
@@ -122,65 +128,54 @@ public abstract class CircleUiObject {
             subTitleRectangle.setRect(-1, -1, 0, 0);
             return;
         }
+
+
         Point2D distPoint = transform.transform(new Point2D.Double(getX(), getY()), new Point2D.Double());
 
-        graphics2D.setFont(FONT);
-        FontMetrics titleMetrics = graphics2D.getFontMetrics();
-        graphics2D.setFont(SUB_FONT);
-        FontMetrics subTitleMetrics = graphics2D.getFontMetrics();
+        Rectangle2D titleBounds = FONT.getStringBounds(title, graphics2D.getFontRenderContext());
+        Rectangle2D subTitleBounds = SUB_FONT.getStringBounds(subTitle, graphics2D.getFontRenderContext());
 
-        int titleHeight = titleMetrics.getHeight();
-        int subTitleHeight = subTitleMetrics.getHeight();
-
-        int titleWidth = titleMetrics.stringWidth(title);
-        int subTitleWidth = subTitleMetrics.stringWidth(subTitle);
-
-        int width = (showSubTitle && subTitleWidth > titleWidth ? subTitleWidth : titleWidth);
+        double width = (showSubTitle ? Math.max(subTitleBounds.getWidth(), titleBounds.getWidth()) : titleBounds.getWidth());
 
         double y;
         Color labelColor;
         Color fillColor;
-        if (2 * radius * transform.getScaleX() > width + titleHeight / 2. + (showSubTitle ? subTitleHeight /2. : 0)) {
-            y = distPoint.getY() + titleHeight / 2. - 3;
+        if (2 * radius * transform.getScaleX() > width + titleBounds.getHeight() / 2. + (showSubTitle ? subTitleBounds.getHeight() /2. : 0)) {
+            y = distPoint.getY() + titleBounds.getHeight() / 2. - 3;
             labelColor = DrawPanel.BACKGROUND_COLOR;
             fillColor = null;
         } else {
-            y = distPoint.getY() + titleHeight - 3 +
+            y = distPoint.getY() + titleBounds.getHeight() - 3 +
                             (radius < 0.5 / transform.getScaleX() ? HINT_RADIUS : 0) +
                             radius * transform.getScaleX();
             labelColor = getColor();
             fillColor = DrawPanel.BACKGROUND_COLOR;
         }
 
-        AttributedString titleString = new AttributedString(title);
-        if (selected) {
-            titleString.addAttribute(TextAttribute.FONT, FONT_BOLD);
-            titleString.addAttribute(TextAttribute.UNDERLINE, TextAttribute.UNDERLINE_ON);
-        } else {
-            titleString.addAttribute(TextAttribute.FONT, FONT);
-        }
-        double titleX = distPoint.getX() - titleWidth / 2.;
-        titleRectangle.setRect(titleX - 2, y - titleHeight + 5, titleWidth + 5, titleHeight);
+        double titleX = distPoint.getX() - titleBounds.getWidth() / 2.;
+        titleRectangle.setRect(titleX - 2, y - titleBounds.getHeight() + 3, titleBounds.getWidth() + 4, titleBounds.getHeight());
         if (fillColor != null) {
             graphics2D.setColor(fillColor);
             graphics2D.fill(titleRectangle);
         }
         graphics2D.setColor(labelColor);
-        graphics2D.drawString(titleString.getIterator(), (float) titleX, (float) y);
+        graphics2D.setFont(selected ? FONT_BOLD : FONT);
+        graphics2D.drawString(title, (float) titleX, (float) y);
 
         if (!showSubTitle) {
             subTitleRectangle.setRect(-1, -1, 0, 0);
             return;
         }
 
-        double subTitleX = distPoint.getX() - subTitleWidth / 2.;
-        subTitleRectangle.setRect(subTitleX - 2, y + 2, subTitleWidth + 5, subTitleHeight);
+        double subTitleX = distPoint.getX() - subTitleBounds.getWidth() / 2.;
+        subTitleRectangle.setRect(subTitleX - 2, y + 2, subTitleBounds.getWidth() + 5, subTitleBounds.getHeight());
         if (fillColor != null) {
             graphics2D.setColor(fillColor);
             graphics2D.fill(subTitleRectangle);
         }
         graphics2D.setColor(labelColor);
-        graphics2D.drawString(subTitle, (float) subTitleX, (float) y + subTitleHeight - 3);
+        graphics2D.setFont(SUB_FONT);
+        graphics2D.drawString(subTitle, (float) subTitleX, (float) (y + subTitleBounds.getHeight() - 3));
     }
 
     public boolean in(double x, double y) {

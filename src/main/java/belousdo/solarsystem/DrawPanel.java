@@ -12,6 +12,7 @@ import java.awt.geom.Rectangle2D;
 import java.io.Closeable;
 import java.io.IOException;
 import java.text.AttributedString;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -25,10 +26,19 @@ public class DrawPanel extends JPanel implements Closeable {
     private static final int MOVE_SIZE = 10;
     private static final double MOVE_SCALE = 0.03;
 
+    public static final Color FONT_COLOR = new Color(160,160,160);
     public static final Color BACKGROUND_COLOR = new Color(16, 16, 32);
     public static final Font FONT = new Font("Arial", Font.PLAIN, 12);
-    public static final Font FONT_BOLD = new Font("Arial", Font.BOLD, 12);
+    public static final Font FONT_BOLD = createSelectedFont();
     public static final Font SUB_FONT = new Font(Font.MONOSPACED, Font.PLAIN, 11);
+
+    private static Font createSelectedFont() {
+        Map<TextAttribute, Object> attributes = new HashMap<>(1, 1);
+        attributes.put(TextAttribute.UNDERLINE, TextAttribute.UNDERLINE_ON);
+        attributes.put(TextAttribute.WEIGHT, TextAttribute.WEIGHT_BOLD);
+        return FONT.deriveFont(attributes);
+    }
+
 
     private double x = 0;
     private double y = 0;
@@ -39,6 +49,8 @@ public class DrawPanel extends JPanel implements Closeable {
 
     private boolean help = false;
     private CircleUiObject infoObject;
+
+    private boolean ellipseOrbit = false;
 
     private int dragX;
     private int dragY;
@@ -152,16 +164,6 @@ public class DrawPanel extends JPanel implements Closeable {
                     selected = infoObject;
                     goToSelected();
                 }
-//                if (getCursor() == Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)) {
-//                    for (CircleUiObject uiObject : uiObjects.values()) {
-//                        if (uiObject.in(e.getX(), e.getY())) {
-//                            selected.setSelected(false);
-//                            uiObject.setSelected(true);
-//                            selected = uiObject;
-//                            goToSelected();
-//                        }
-//                    }
-//                }
                 dragX = e.getX();
                 dragY = e.getY();
             }
@@ -211,6 +213,22 @@ public class DrawPanel extends JPanel implements Closeable {
                         scale = 1.0570008340247048437705108306581e-28;
                     }
                     repaint();
+                    return;
+                }
+                if (keyCode == 113) {
+                    ellipseOrbit = !ellipseOrbit;
+                    for (CircleUiObject uiObject : uiObjects.values()) {
+                        if (uiObject instanceof Planet) {
+                            ((Planet) uiObject).setEllipseOrbit(ellipseOrbit);
+                        }
+                    }
+                    return;
+                }
+                if (keyCode == 114) {
+                    if (selected instanceof Planet) {
+                        Planet planet = (Planet) selected;
+                        planet.setEllipseOrbit(!planet.isEllipseOrbit());
+                    }
                     return;
                 }
                 if (keyCode == 32) {
@@ -274,8 +292,8 @@ public class DrawPanel extends JPanel implements Closeable {
         Graphics2D graphics2D = (Graphics2D) g;
 
         graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        graphics2D.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-        graphics2D.setStroke(new BasicStroke(0.000001f));
+        graphics2D.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
+        graphics2D.setStroke(new BasicStroke(0.01f));
 
         AffineTransform transform = new AffineTransform();
         transform.scale(scale, -scale);
@@ -296,14 +314,14 @@ public class DrawPanel extends JPanel implements Closeable {
         }
         selected.text(graphics2D, transform);
 
-        graphics2D.setColor(Color.gray);
-
+        graphics2D.setColor(FONT_COLOR);
+        graphics2D.setFont(SUB_FONT);
         fontMetrics = graphics2D.getFontMetrics();
         textHeight = fontMetrics.getHeight();
 
         infoHeight = rectangle.height + textHeight;
         if (help) {
-            drawInfoString(graphics2D, "Dmitri Belous, IIIT, 2016, v1.1.7.2");
+            drawInfoString(graphics2D, "Dmitri Belous, IIIT, 2016, v1.1.8");
         }
         if (infoObject != null) {
             if (infoObject instanceof Planet) {
@@ -338,6 +356,8 @@ public class DrawPanel extends JPanel implements Closeable {
         if (help) {
             drawMainString(graphics2D, "-/+ или колесо мыши - изменить масштаб");
             drawMainString(graphics2D, "б/ю - замедлить/ускорить время");
+            drawMainString(graphics2D, "F2 - вкл/выкл эллиптические орбиты");
+            drawMainString(graphics2D, "F3 - только для выбранного объекта");
             drawMainString(graphics2D, "\u2190\u2191\u2192\u2193 или мышь - перемещение");
             drawMainString(graphics2D, "");
             drawMainString(graphics2D, "Перейти к объекту:");

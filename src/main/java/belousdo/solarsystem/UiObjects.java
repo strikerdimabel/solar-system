@@ -18,6 +18,10 @@ public class UiObjects {
         return priorityMap;
     }
 
+    public static void main(String[] args) {
+        System.out.println(new Color(-8355712).getBlue());
+    }
+
     public TreeMap<Integer, CircleUiObject> uiObjects() {
         try (
             Scanner dataScanner = new Scanner(new InputStreamReader(ClassLoader.getSystemResourceAsStream("data.csv"), "UTF-8"));
@@ -47,7 +51,7 @@ public class UiObjects {
                     CircleUiObject connectedTo = uiObjectMap.get(connectedToId);
                     connectedTo.addMoon((Planet) newObject);
                 } else {
-                    newObject = new Sun(title, keyCode, key, subTitle, radius, new Color(color));
+                    newObject = new Sun(title, keyCode, key, subTitle, radius, new Color(color, true));
                 }
                 uiObjectMap.put(id, newObject);
                 Integer priority = (tokens[11].length() == 0 ? null : Integer.valueOf(tokens[11]));
